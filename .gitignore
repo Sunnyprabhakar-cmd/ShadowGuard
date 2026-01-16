@@ -1,0 +1,40 @@
+# Dependencies
+node_modules/
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+env/
+venv/
+.venv/
+
+# Models and data
+models/
+models_backup_*/
+models_candidate_*/
+data/
+ccid_data/
+*.pkl
+*.png
+
+# Environment
+.env
+.env.local
+.codex
+.venv*/
+
+# Logs
+logs/
+*.log
+
+# Database
+postgres_data/
+
+# IDE
+.vscode/
+.idea/
+
+# OS
+.DS_Store
+Thumbs.db

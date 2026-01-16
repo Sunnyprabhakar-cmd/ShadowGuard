@@ -1,0 +1,17 @@
+{
+  "name": "playbook-decision-engine",
+  "version": "1.0.0",
+  "description": "Decision engine for threat response playbooks",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js",
+    "dev": "nodemon index.js"
+  },
+  "dependencies": {
+    "express": "^4.18.0",
+    "axios": "^1.6.0"
+  },
+  "devDependencies": {
+    "nodemon": "^2.0.0"
+  }
+}

@@ -1,0 +1,12 @@
+{
+  "benignPrediction": 0,
+  "confidenceThresholds": {
+    "low": 0.6,
+    "high": 0.85
+  },
+  "actions": {
+    "benign": "monitor",
+    "lowConfidenceThreat": "alert",
+    "highConfidenceThreat": "block"
+  }
+}

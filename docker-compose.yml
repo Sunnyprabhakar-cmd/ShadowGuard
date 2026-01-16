@@ -1,0 +1,163 @@
+name: shadow_guard
+
+services:
+  postgres:
+    image: postgres:15
+    environment:
+      POSTGRES_DB: threat_logs
+      POSTGRES_USER: user
+      POSTGRES_PASSWORD: password
+    ports:
+      - "5433:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./database/init.sql:/docker-entrypoint-initdb.d/init.sql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U user -d threat_logs"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  traffic-capture-service:
+    build: ./traffic-capture-service
+    ports:
+      - "3001:3000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      - NODE_ENV=production
+
+  flow-feature-extraction-service:
+    build: ./flow-feature-extraction-service
+    ports:
+      - "3002:3000"
+    depends_on:
+      - traffic-capture-service
+    environment:
+      - NODE_ENV=production
+
+  ml-detection-service:
+    build: ./ml-detection-service
+    ports:
+      - "8001:8000"
+    depends_on:
+      - flow-feature-extraction-service
+    volumes:
+      - ./models:/app/models
+    environment:
+      - MODEL_PATH=/app/models
+
+  threat-classification-service:
+    build: ./threat-classification-service
+    ports:
+      - "8002:8000"
+    depends_on:
+      - ml-detection-service
+    volumes:
+      - ./models:/app/models
+    environment:
+      - MODEL_PATH=/app/models
+
+  playbook-decision-engine:
+    build: ./playbook-decision-engine
+    ports:
+      - "3003:3000"
+    depends_on:
+      - threat-classification-service
+    environment:
+      - NODE_ENV=production
+      - PLAYBOOK_RULES_PATH=/app/rules/playbook-rules.json
+
+  alert-notification-service:
+    build: ./alert-notification-service
+    ports:
+      - "3004:3000"
+    depends_on:
+      - playbook-decision-engine
+    volumes:
+      - ./alert-notification-service/data:/app/data
+    environment:
+      - NODE_ENV=production
+      - EMAIL_USER=${EMAIL_USER}
+      - EMAIL_PASS=${EMAIL_PASS}
+      - SMTP_HOST=${SMTP_HOST}
+      - SMTP_PORT=${SMTP_PORT}
+      - SMTP_USER=${SMTP_USER}
+      - SMTP_PASS=${SMTP_PASS}
+      - SMTP_FROM=${SMTP_FROM}
+      - ALERT_RECIPIENTS=${ALERT_RECIPIENTS}
+      - ALERT_CRITICAL_ONLY=${ALERT_CRITICAL_ONLY}
+      - ALWAYS_CC_SENDER=true
+      - ALERT_CONFIG_DIR=/app/data
+
+  automated-response-service:
+    build: ./automated-response-service
+    ports:
+      - "3005:3000"
+    depends_on:
+      - alert-notification-service
+    environment:
+      - NODE_ENV=production
+      - ENABLE_LOCAL_IPTABLES=false
+
+  threat-log-database-service:
+    build: ./threat-log-database-service
+    ports:
+      - "3006:3000"
+    depends_on:
+      - postgres
+    environment:
+      - NODE_ENV=production
+      - DB_HOST=postgres
+      - DB_USER=user
+      - DB_PASS=password
+      - DB_NAME=threat_logs
+
+  model-training-service:
+    build: ./model-training-service
+    ports:
+      - "8003:8000"
+    depends_on:
+      - postgres
+    volumes:
+      - ./data:/app/data
+      - ./models:/app/models
+    environment:
+      - DATA_PATH=/app/data
+      - MODEL_PATH=/app/models
+
+  demo-traffic-generator:
+    image: python:3.11-slim
+    working_dir: /app
+    command: ["python", "auto_demo.py"]
+    depends_on:
+      - traffic-capture-service
+      - threat-log-database-service
+      - threat-dashboard-service
+    volumes:
+      - ./:/app
+    environment:
+      - CAPTURE_URL=http://traffic-capture-service:3000/capture
+      - DASHBOARD_URL=http://threat-dashboard-service:3000
+      - RESET_LOGS_URL=http://threat-log-database-service:3000/logs/reset
+
+  threat-dashboard-service:
+    build: ./threat-dashboard-service
+    ports:
+      - "7000:3000"
+    depends_on:
+      - traffic-capture-service
+      - flow-feature-extraction-service
+      - ml-detection-service
+      - threat-classification-service
+      - playbook-decision-engine
+      - alert-notification-service
+      - automated-response-service
+      - threat-log-database-service
+      - model-training-service
+    environment:
+      - NODE_ENV=production
+
+volumes:
+  postgres_data:

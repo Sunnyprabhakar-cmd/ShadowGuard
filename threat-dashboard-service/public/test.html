@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Test Page</title>
+</head>
+<body>
+  <h1>Dashboard Test</h1>
+  <div id="status"></div>
+  
+  <script>
+    document.getElementById('status').innerHTML = 'JavaScript is working! ' + new Date();
+    
+    // Test fetch
+    fetch('/api/statistics')
+      .then(r => r.json())
+      .then(data => {
+        document.getElementById('status').innerHTML += '<br/>API working: ' + JSON.stringify(data).substring(0, 100);
+      })
+      .catch(e => {
+        document.getElementById('status').innerHTML += '<br/>API error: ' + e.message;
+      });
+  </script>
+</body>
+</html>
