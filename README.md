@@ -25,8 +25,6 @@ Raw Traffic → Feature Extraction → Anomaly Detection → Threat Classificati
                                                         → Real-Time Dashboard
 ```
 
-Built as a B.Tech. final-year project (CS 300) at the **Indian Institute of Information Technology Guwahati**, April 2026.
-
 ---
 
 ## ✨ Key Features
